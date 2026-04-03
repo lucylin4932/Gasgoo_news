@@ -1,0 +1,147 @@
+产品需求文档 (PRD): 全球汽车行业资讯智能采集与摘要系统
+
+版本: v1.0
+
+状态: 准备评审
+
+主要目标: 实现针对 Gasgoo (盖世汽车) 资讯的自动化采集、智能摘要及结构化输出，替代人工筛选。
+
+1. 项目背景与价值 (Project Background)
+
+目前团队每周需花费大量时间（约10小时以上）手动浏览 https://autonews.gasgoo.com/ 以追踪行业动态。本项目旨在通过 Python 爬虫结合 LLM（大语言模型），构建一个简易的 Agentic Workflow，实现“感知-处理-决策-输出”的闭环。
+
+核心价值：
+
+
+
+效率提升： 节省 100% 的手动阅读与初步摘要时间。
+
+信息降噪： LLM 过滤无关信息，仅提取核心商业洞察。
+
+标准化输出： 统一格式，便于后续接入 BI 或推送至 IM 软件。
+
+2. 业务流程设计 (Workflow Design)
+
+系统将采用模块化设计，模拟 Agent 的决策逻辑。
+
+
+
+2.1 核心流程步骤
+
+触发阶段： 每日定时（Cron Job）或手动触发。
+
+感知阶段 (Scraper)： 抓取 Gasgoo 首页及二级页面的文章列表。
+
+决策/处理阶段 (Agentic LLM)：
+
+判断相关性： 判断内容是否属于设定的重点领域（如：EV, Supply Chain）。
+
+深度总结： 提取核心事实、关键人物、行业影响。
+
+分发阶段： 存储至数据库并发送摘要简报。
+
+3. 功能需求 (Functional Requirements)
+
+3.1 网页抓取模块 (Scraper Module)
+
+目标 URL: https://autonews.gasgoo.com/
+
+抓取字段：
+
+Title (标题)
+
+Publication Date (发布时间)
+
+Source (来源)
+
+URL (原文链接)
+
+Content (正文全文)
+
+技术要求：
+
+处理动态加载内容（如有）。
+
+Headers 模拟： 随机 User-Agent，避免触发反爬机制。
+
+清洗规则： 自动剔除 HTML 标签、广告脚本及页脚冗余信息。
+
+3.2 LLM 摘要引擎 (Summarizer Engine)
+
+输入： 抓取的正文内容。
+
+Prompt 策略 (System Prompt)：
+
+
+
+“你是一位资深汽车行业分析师。请阅读以下文章，提取：1. 核心事件；2. 涉及的关键公司；3. 预估行业影响。字数控制在 150 字以内，语气客观专业。”
+
+模型选型： GPT-4o 或 DeepSeek-V3（基于 Token 成本与推理能力平衡）。
+
+3.3 Agentic 逻辑增强 (Agentic Features)
+
+自校验逻辑： 如果 LLM 输出结果为空或格式不正确，自动触发 Retry（最多3次）。
+
+敏感度过滤： 自动识别并标记“Breaking News”或“High Priority”文章。
+
+4. 技术规格与数据架构 (Technical Specs)
+
+4.1 数据结构 (JSON Schema)
+
+JSON
+
+
+
+{
+
+"article_id": "uuid",
+
+"source_url": "https://autonews.gasgoo.com/...",
+
+"raw_data": {
+
+"title": "...",
+
+"full_content": "..."
+
+},
+
+"ai_summary": {
+
+"key_points": ["...", "..."],
+
+"sentiment": "Neutral/Positive/Negative",
+
+"priority": 1-5
+
+},
+
+"status": "processed",
+
+"timestamp": "2026-04-03T17:00:00Z"
+
+}
+
+4.2 性能指标 (KPIs)
+
+准确率： LLM 摘要与原文核心事实的一致性 > 95%。
+
+耗时： 单篇抓取 + 总结的全链路时间 < 15 秒。
+
+稳定性： 爬虫成功率 > 98%（需具备应对页面结构微调的容错能力）。
+
+5. 异常处理 (Error Handling)
+
+页面改版： 若关键 CSS 选择器失效，系统需向开发者发送 Webhook 告警。
+
+API 熔断： 当 LLM API 连续调用失败时，自动缓存原始文本，待服务恢复后补处理。
+
+反爬应对： 若遇到验证码（CAPTCHA），系统需暂停任务并记录错误日志。
+
+6. 后续迭代规划
+
+V1.1: 增加多源抓取（如 Reuters Automotive）。
+
+V1.2: 实现基于企业微信的自动摘要推送。
+
+V1.3: 引入知识库（RAG），让 LLM 能够对比历史新闻进行深度解读。

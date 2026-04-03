@@ -1,0 +1,39 @@
+name: Gasgoo Auto Analyst
+
+on:
+  schedule:
+    # 每天北京时间早上 9:00 运行 (UTC 1:00)
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Scraper and AI Agent
+        env:
+          # 从 GitHub Secrets 读取 Key 并注入环境变量
+          OPENAI_API_KEY: ${{ secrets.LLM_API_KEY }} 
+        run: python main.py
+
+      - name: Commit and Push Report
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add report_*.json
+          git commit -m "Auto-generate industry report [$(date)]" || exit 0
+          git push
